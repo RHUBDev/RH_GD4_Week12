@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.UI;
+using TMPro;
 
 public class playerMovement : MonoBehaviour
 {
@@ -11,10 +12,21 @@ public class playerMovement : MonoBehaviour
     Animator anim;
     private Vector3 touchStart, touchEnd;
     public Image dpad;
+    public Image dpadBack;
     public float dpadRadius = 50;
     private Touch theTouch;
     private int leftFingerID= -1;
     public float maxMoveSpeed = 1.5f;
+    public TMP_Text pickupMessage;
+    public TMP_Text healthMessage;
+    public TMP_Text manaMessage;
+    private float health = 10;
+    private float maxHealth = 100;
+    private float mana = 10;
+    private float maxMana = 100;
+    public Rigidbody2D rig;
+    public float rigMoveSpeed = 0.01f;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -31,27 +43,48 @@ public class playerMovement : MonoBehaviour
     {
         //getting input from keyboard controls
         
-        //calculateDesktopInputs();
-
+        #if UNITY_STANDALONE || UNITY_EDITOR
+        calculateDesktopInputs();
+        //calculateCustomTouchInput();
         //calculateMobileInput();
-
+        #else
         calculateCustomTouchInput();
-
-        //sets up the animator
-        animationSetup();
-
+        #endif
         //moves the player
         //transform.Translate(inputDirection * moveSpeed * Time.deltaTime);
     }
 
+    void FixedUpdate()
+    {   
+        //sets up the animator
+        animationSetup();
+    }
+
+    public void Pickup(potionInfo potion)
+    {
+        pickupMessage.text = potion.message;
+        
+        health += potion.addHealth;
+        mana += potion.addMana;
+        if(health > maxHealth)
+        {
+            health = maxHealth;
+        }
+        if(mana > maxMana)
+        {
+            mana = maxMana;
+        }
+        healthMessage.text = "Health: "+ health;
+        manaMessage.text = "Mana: "+ mana;
+    }
 
     void calculateDesktopInputs()
     {
         float x = Input.GetAxisRaw("Horizontal");
         float y = Input.GetAxisRaw("Vertical");
 
-        inputDirection = new Vector2(x, y).normalized;
-
+        Vector2 inputDir = new Vector2(x, y).normalized;
+        inputDirection =  inputDir * maxMoveSpeed;
         if(Input.GetKeyDown(KeyCode.Space))
         {
             attack();
@@ -72,7 +105,8 @@ public class playerMovement : MonoBehaviour
             anim.SetBool("isWalking", true);
             
             //moves the player
-            transform.Translate(inputDirection * moveSpeed * Time.deltaTime);
+            //transform.Translate(inputDirection * moveSpeed * Time.deltaTime);
+            rig.MovePosition(rig.position + inputDirection * moveSpeed * Time.fixedDeltaTime);
         }
         else
         {
@@ -179,23 +213,21 @@ public class playerMovement : MonoBehaviour
                 {
                     if(leftFingerID == -1 &&  Input.GetTouch(i).phase == TouchPhase.Began)
                     {
-                        Debug.Log("0");
                         theTouch = Input.GetTouch(i);
                         leftFingerID = Input.GetTouch(i).fingerId;
                         dpad.gameObject.SetActive(true);
+                        dpadBack.gameObject.SetActive(true);
                     }
                     //DoLeftTouch();
 
                     if(Input.GetTouch(i).phase == TouchPhase.Moved && Input.GetTouch(i).fingerId == leftFingerID)
                     {
                        theTouch = Input.GetTouch(i);
-                       Debug.Log("1");
                       // DoLeftTouch();
                     }
                     if(Input.GetTouch(i).phase == TouchPhase.Ended && Input.GetTouch(i).fingerId == leftFingerID)
                     {
                         theTouch = Input.GetTouch(i);
-                        Debug.Log("1.5");
                         leftFingerID = -1;
                         inputDirection = Vector2.zero;
                     }
@@ -205,11 +237,10 @@ public class playerMovement : MonoBehaviour
         }
         else
         {
-            
-            Debug.Log("1.7");
             leftFingerID = -1;
             inputDirection = Vector2.zero;
             dpad.gameObject.SetActive(false);
+            dpadBack.gameObject.SetActive(false);
         }
     }
 
@@ -217,14 +248,12 @@ public class playerMovement : MonoBehaviour
     {
         if(theTouch.phase == TouchPhase.Began)
         {
-            Debug.Log("2");
             touchStart = theTouch.position;
             dpad.transform.position = touchStart;
+            dpadBack.transform.position = touchStart;
         }
         if(theTouch.phase == TouchPhase.Moved || theTouch.phase == TouchPhase.Ended)
         {
-            
-            Debug.Log("3");
             touchEnd = theTouch.position;
             
             //float x = touchEnd.x - touchStart.x;
@@ -248,7 +277,12 @@ public class playerMovement : MonoBehaviour
              Vector2 inputDir = new Vector2(x,y);
 
              inputDirection =  (inputDir / dpadRadius) * maxMoveSpeed;
-             Debug.Log("inputDir = " + inputDir + ", inputDirection " + inputDirection);
         }
+    }
+
+    IEnumerator ResetPickupText()
+    {
+        yield return new WaitForSeconds(2);
+        pickupMessage.text = "";
     }
 }
