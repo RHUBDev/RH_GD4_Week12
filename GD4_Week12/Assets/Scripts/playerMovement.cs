@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.InputSystem;
 
 public class playerMovement : MonoBehaviour
 {
@@ -26,6 +27,9 @@ public class playerMovement : MonoBehaviour
     private float maxMana = 100;
     public Rigidbody2D rig;
     public float rigMoveSpeed = 0.01f;
+    PlayerInput _playerInput;
+    InputAction moveAction;
+    InputAction attackAction;
 
     // Start is called before the first frame update
     void Start()
@@ -36,6 +40,10 @@ public class playerMovement : MonoBehaviour
         lookDirection = new Vector2(0, -1);
 
         dpadRadius = Screen.dpi / 2;
+
+        _playerInput = GetComponent<PlayerInput>();
+        moveAction = _playerInput.actions.FindAction("Move");
+        attackAction = _playerInput.actions.FindAction("Attack");
     }
 
     // Update is called once per frame
@@ -50,7 +58,9 @@ public class playerMovement : MonoBehaviour
         #else
         calculateCustomTouchInput();
         #endif
+
         //moves the player
+        //moved to animationSetup()
         //transform.Translate(inputDirection * moveSpeed * Time.deltaTime);
     }
 
@@ -80,12 +90,17 @@ public class playerMovement : MonoBehaviour
 
     void calculateDesktopInputs()
     {
-        float x = Input.GetAxisRaw("Horizontal");
-        float y = Input.GetAxisRaw("Vertical");
+        //float x = Input.GetAxisRaw("Horizontal");
+        //float y = Input.GetAxisRaw("Vertical");
 
-        Vector2 inputDir = new Vector2(x, y).normalized;
-        inputDirection =  inputDir * maxMoveSpeed;
-        if(Input.GetKeyDown(KeyCode.Space))
+        //Vector2 inputDir = new Vector2(x, y).normalized;
+
+        Vector2 inputDir = moveAction.ReadValue<Vector2>();
+
+        inputDirection = inputDir * maxMoveSpeed;
+
+        //if(Input.GetKeyDown(KeyCode.Space))
+        if(attackAction.WasPressedThisFrame())
         {
             attack();
         }
@@ -161,7 +176,7 @@ public class playerMovement : MonoBehaviour
         }
     }
 
-    void calculateTouchInput()
+    /*void calculateTouchInput()
     {
         if(Input.touchCount > 0)
         {
@@ -198,9 +213,9 @@ public class playerMovement : MonoBehaviour
             inputDirection = Vector2.zero;
             dpad.gameObject.SetActive(false);
         }
-    }
+    }*/
 
-    void calculateCustomTouchInput()
+    /*void calculateCustomTouchInput()
     {
         if(Input.touchCount > 0)
         {
@@ -242,9 +257,9 @@ public class playerMovement : MonoBehaviour
             dpad.gameObject.SetActive(false);
             dpadBack.gameObject.SetActive(false);
         }
-    }
+    }*/
 
-    void DoLeftTouch()
+   /* void DoLeftTouch()
     {
         if(theTouch.phase == TouchPhase.Began)
         {
@@ -278,7 +293,7 @@ public class playerMovement : MonoBehaviour
 
              inputDirection =  (inputDir / dpadRadius) * maxMoveSpeed;
         }
-    }
+    }*/
 
     IEnumerator ResetPickupText()
     {
