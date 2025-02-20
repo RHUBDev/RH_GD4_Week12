@@ -5,6 +5,7 @@ using UnityEngine.Rendering;
 using UnityEngine.UI;
 using TMPro;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 public class playerMovement : MonoBehaviour
 {
@@ -21,21 +22,27 @@ public class playerMovement : MonoBehaviour
     public TMP_Text pickupMessage;
     public TMP_Text healthMessage;
     public TMP_Text manaMessage;
-    private float health = 10;
+    private float health = 50;
     private float maxHealth = 100;
-    private float mana = 10;
+    private float mana = 50;
     private float maxMana = 100;
     public Rigidbody2D rig;
     public float rigMoveSpeed = 0.01f;
     PlayerInput _playerInput;
     InputAction moveAction;
     InputAction attackAction;
+    private float hitForce = 5f;
+    [SerializeField] GameObject[] colls;
+    [SerializeField] GameObject attackButton;
 
     // Start is called before the first frame update
     void Start()
     {
         anim = GetComponent<Animator>();
 
+#if UNITY_STANDALONE || UNITY_EDITOR
+        attackButton.SetActive(false);
+#endif
         //makes the character look down by default
         lookDirection = new Vector2(0, -1);
 
@@ -140,6 +147,8 @@ public class playerMovement : MonoBehaviour
     public void attack()
     {
         anim.SetTrigger("Attack");
+
+        StartCoroutine(DoAttack());
     }
 
     void calculateMobileInput()
@@ -299,5 +308,56 @@ public class playerMovement : MonoBehaviour
     {
         yield return new WaitForSeconds(2);
         pickupMessage.text = "";
+    }
+
+    public void TakeDamage(Vector3 dir)
+    {
+        if (health > 0)
+        {
+            health -= 20;
+            healthMessage.text = "Health: " + health;
+            rig.AddForce(dir * hitForce, ForceMode2D.Impulse);
+
+            if (health <= 0)
+            {
+                health = 0;
+                healthMessage.text = "Health: " + health;
+                SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            }
+        }
+    }
+
+    IEnumerator DoAttack()
+    {
+        yield return new WaitForEndOfFrame();
+
+        GameObject coll = null;
+
+        AnimatorClipInfo[] animInfo = anim.GetCurrentAnimatorClipInfo(0);
+        Debug.Log("clip name = " + animInfo[0].clip.name);
+
+        if (animInfo[0].clip.name == "Attack_Right")
+        {
+            coll = colls[0];
+        }
+        else if (animInfo[0].clip.name == "Attack_Left")
+        {
+            coll = colls[1];
+        }
+        else if (animInfo[0].clip.name == "Attack_Up")
+        {
+            coll = colls[2];
+        }
+        else if (animInfo[0].clip.name == "Attack_Down")
+        {
+            coll = colls[3];
+        }
+
+        if (coll != null)
+        {
+            coll.SetActive(true);
+            yield return new WaitForSeconds(1);
+            coll.SetActive(false);
+        }
     }
 }
